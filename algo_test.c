@@ -151,7 +151,8 @@ int main(int argc, char** argv) {
     previous_dir = strdup(buffer);
     chdir(test_dir);
     struct dirent ** entries;
-
+    
+    /* Get all input files */
     int files = scandir(".", &entries, input_filter, versionsort);
     int i = 0;
     while (i < files && i < cases) {
@@ -169,14 +170,19 @@ int main(int argc, char** argv) {
             exit(1);
         }
         if(p == 0) {
+            /* Set up for execution */
+            /* Redirect stdin */
             close(0);
             dup(read_fd);
             close(read_fd);
-
+            
+            /* Redirect stdout */
             close(1);
             dup(fd[1]);
             close(fd[1]);
             close(fd[0]);
+
+            /* execute program */
             chdir(previous_dir);
             char* arg[] = { executable, NULL };
             if(execvp(arg[0], arg) == -1) {
@@ -184,25 +190,18 @@ int main(int argc, char** argv) {
                 exit(1);
             }
         }
+        /* Close child's file descriptors */
         close(read_fd);
         close(fd[1]);
-        strcpy(buffer, "output");
-        strcpy(buffer + 6, (entries[i]->d_name) + 5);
-        int out_fd = open(buffer, O_RDONLY);
-        if(out_fd < 0) {
-            perror(buffer);
-            wait(&status);
-            free(entries[i]);
-            i++;
-            good = 0;
-            close(fd[0]);
-            continue;
-        }
+
+        /* Time execution */
         struct timespec start={0,0}, finish={0,0};
         clock_gettime(CLOCK_REALTIME, &start);
+        /* Set alarm */
         if(time != -1)
             alarm(time);
         wait(&status);
+        /* if the alarm has hit */
         if(timeout_flag) {
             kill(p, SIGTERM);
             wait(&status);
@@ -215,6 +214,20 @@ int main(int argc, char** argv) {
             continue;
         }
         clock_gettime(CLOCK_REALTIME, &finish);
+        
+        /* Get output */
+        strcpy(buffer, "output");
+        strcpy(buffer + 6, (entries[i]->d_name) + 5);
+        int out_fd = open(buffer, O_RDONLY);
+        if(out_fd < 0) {
+            perror(buffer);
+            wait(&status);
+            free(entries[i]);
+            i++;
+            good = 0;
+            close(fd[0]);
+            continue;
+        }
 
         if(status % 256 != 0) {
             fprintf(stderr, "%d ", status);
@@ -222,6 +235,8 @@ int main(int argc, char** argv) {
             good = 0;
         }
         int count = 0, r = 0;
+
+        /* Compare input-output */
         while((count = read(out_fd, buffer, BUFF_SIZE)) != 0) {
             buffer[count] = '\0';
             r = read(fd[0], buffer2, BUFF_SIZE);
@@ -235,7 +250,6 @@ int main(int argc, char** argv) {
                         ((double)start.tv_sec + 1.0e-9*start.tv_nsec));
                 good = 0;
             }
-            //if(strncmp(buffer, buffer2, strlen(buffer) - 2) == 0 && r == count) {
             else {
                 printf("%s:\tTestcase #%d completed in: %lfs\n", entries[i]->d_name, i+1,
                         ((double)finish.tv_sec + 1.0e-9*finish.tv_nsec) -
@@ -244,11 +258,11 @@ int main(int argc, char** argv) {
             free(entries[i]);
             i++;
         }
-        }
-        chdir(previous_dir);
-        if(i > 0 && good)
-            printf("All your outputs are correct\n");
-        else if(i == 0)
-            printf("No inputs found in directory %s\n", test_dir);
-        return 0;
     }
+    chdir(previous_dir);
+    if(i > 0 && good)
+        printf("All your outputs are correct\n");
+    else if(i == 0)
+        printf("No inputs found in directory %s\n", test_dir);
+    return 0;
+}
