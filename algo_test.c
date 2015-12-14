@@ -138,7 +138,14 @@ int main(int argc, char** argv) {
         exit(1);
     }
     /* We use alarm to kill long testcases */
-    signal(SIGALRM, handle_alarm);  // Change to SIGACTION
+    struct sigaction act;
+    memset (&act, '\0', sizeof(act));
+    act.sa_sigaction = &handle_alarm;  // Change to SIGACTION
+    act.sa_flags = SA_SIGINFO;
+    if (sigaction(SIGALRM, &act, NULL) < 0) {
+        perror ("sigaction");
+        return 1;
+    }
 
     /* Get every input file */
     previous_dir = strdup(buffer);
@@ -177,6 +184,7 @@ int main(int argc, char** argv) {
                 exit(1);
             }
         }
+        close(read_fd);
         close(fd[1]);
         strcpy(buffer, "output");
         strcpy(buffer + 6, (entries[i]->d_name) + 5);
@@ -187,6 +195,7 @@ int main(int argc, char** argv) {
             free(entries[i]);
             i++;
             good = 0;
+            close(fd[0]);
             continue;
         }
         struct timespec start={0,0}, finish={0,0};
@@ -196,11 +205,13 @@ int main(int argc, char** argv) {
         wait(&status);
         if(timeout_flag) {
             kill(p, SIGTERM);
+            wait(&status);
             printf("%s:\tTestcase #%d timed out...\n", entries[i]->d_name, i+1);
             timeout_flag = 0;
             free(entries[i]);
             i++;
             good = 0;
+            close(fd[0]);
             continue;
         }
         clock_gettime(CLOCK_REALTIME, &finish);
