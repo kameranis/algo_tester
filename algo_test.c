@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
     previous_dir = strdup(buffer);
     chdir(test_dir);
     struct dirent ** entries;
-    
+
     /* Get all input files */
     int files = scandir(".", &entries, input_filter, versionsort);
     int i = 0;
@@ -175,7 +175,7 @@ int main(int argc, char** argv) {
             close(0);
             dup(read_fd);
             close(read_fd);
-            
+
             /* Redirect stdout */
             close(1);
             dup(fd[1]);
@@ -214,7 +214,7 @@ int main(int argc, char** argv) {
             continue;
         }
         clock_gettime(CLOCK_REALTIME, &finish);
-        
+
         /* Get output */
         strcpy(buffer, "output");
         strcpy(buffer + 6, (entries[i]->d_name) + 5);
