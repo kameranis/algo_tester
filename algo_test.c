@@ -43,6 +43,14 @@
 #include <string.h>
 #include <time.h>
 
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_BLUE    "\x1b[34m"
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_CYAN    "\x1b[36m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
+
 #define BUFF_SIZE 65536
 
 volatile sig_atomic_t timeout_flag = 0;
@@ -242,18 +250,18 @@ int main(int argc, char** argv) {
             r = read(fd[0], buffer2, BUFF_SIZE);
             buffer2[r] = '\0';
             if(strcmp(buffer, buffer2) != 0) {
-                printf("Test #%d with input file %s failed\n", i, entries[i]->d_name);
-                printf("Your output:\t%s", buffer2);
-                printf("Correct output:\t%s", buffer);
+                printf("%sTest #%d with input file %s failed\n%s", ANSI_COLOR_RED, i, entries[i]->d_name, ANSI_COLOR_RESET);
+                printf("Your output:\n%s", buffer2);
+                printf("Correct output:\n%s", buffer);
                 printf("Testcase #%d completed in: %lfs\n\n", i+1,
                         ((double)finish.tv_sec + 1.0e-9*finish.tv_nsec) -
                         ((double)start.tv_sec + 1.0e-9*start.tv_nsec));
                 good = 0;
             }
             else {
-                printf("%s:\tTestcase #%d completed in: %lfs\n", entries[i]->d_name, i+1,
+                printf("%s%s:\tTestcase #%d completed in: %lfs\n%s", ANSI_COLOR_GREEN, entries[i]->d_name, i+1,
                         ((double)finish.tv_sec + 1.0e-9*finish.tv_nsec) -
-                        ((double)start.tv_sec + 1.0e-9*start.tv_nsec));
+                        ((double)start.tv_sec + 1.0e-9*start.tv_nsec), ANSI_COLOR_RESET);
             }
             free(entries[i]);
             i++;
